@@ -1,13 +1,13 @@
-# RNN MIDI Generator 🎵
+# RNN MIDI Generator
 Сервис для генерации музыкальных композиций в формате MIDI с использованием рекуррентных нейронных сетей (RNN). Проект включает в себя обученную модель, веб-API и сайт для удобного взаимодействия.
 
-## ✨ Возможности
+## Возможности
 
-- 🎹 Генерация оригинальных музыкальных композиций в формате MIDI
-- ⚡ RESTful API для интеграции с другими приложениями
-- 🤖 Веб-интерфейс для использования сервиса
+- Генерация оригинальных музыкальных композиций в формате MIDI
+- RESTful API для интеграции с другими приложениями
+- Веб-интерфейс для использования сервиса
 
-  👥 Команда разработки
+## Команда разработки
 
   Сергей Сальников:
   - Исследование и подготовка данных
@@ -19,6 +19,7 @@
   - Создание сайта
   - Деплой и инфраструктура
 
-  📚 Источники и ссылки
-   - Maestro Dataset(https://magenta.tensorflow.org/datasets/maestro)
-   - Lakh MIDI Dataset(https://colinraffel.com/projects/lmd/)
+## Источники
+   - Maestro Dataset (https://magenta.tensorflow.org/datasets/maestro)
+   - Lakh MIDI Dataset (https://colinraffel.com/projects/lmd/)
+   - VGMIDI Dataset (https://github.com/lucasnfe/vgmidi)
