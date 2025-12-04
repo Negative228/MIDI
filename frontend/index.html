@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyTorch Model Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .api-status {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+            background: #dc3545;
+        }
+
+        .status-indicator.connected {
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .prediction-button {
+            width: 100%;
+            padding: 25px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+        }
+
+        .prediction-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .prediction-button:active {
+            transform: translateY(0);
+        }
+
+        .prediction-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .result-container {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .result-container.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-title {
+            font-size: 1.1rem;
+            color: #495057;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .result-title .timestamp {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .prediction-data {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .error {
+            color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-size: 0.9rem;
+            border-top: 1px solid #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 PyTorch Model Demo</h1>
+            <p>Демонстрация нейросети на FastAPI и PyTorch</p>
+        </div>
+        
+        <div class="content">
+            <div class="api-status">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <span id="statusText">Проверка подключения к API...</span>
+            </div>
+            
+            <button class="prediction-button" id="predictButton" onclick="getPrediction()">
+                <span id="buttonText">🚀 Получить предсказание модели</span>
+            </button>
+            
+            <div class="result-container" id="resultContainer">
+                <div class="result-title">
+                    <span>Результат предсказания:</span>
+                    <span class="timestamp" id="resultTimestamp"></span>
+                </div>
+                <div class="prediction-data" id="predictionData"></div>
+            </div>
+            
+            <div class="error" id="errorContainer"></div>
+        </div>
+        
+        <div class="footer">
+            <p>FastAPI + PyTorch Model | Размер вывода: <span id="outputShape">-</span></p>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000/api/predict';
+        const HEALTH_URL = 'http://localhost:8000/api/health';
+        
+        const predictButton = document.getElementById('predictButton');
+        const buttonText = document.getElementById('buttonText');
+        const resultContainer = document.getElementById('resultContainer');
+        const predictionData = document.getElementById('predictionData');
+        const resultTimestamp = document.getElementById('resultTimestamp');
+        const errorContainer = document.getElementById('errorContainer');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        const outputShape = document.getElementById('outputShape');
+
+        // Проверка здоровья API при загрузке
+        async function checkAPIHealth() {
+            try {
+                const response = await fetch(HEALTH_URL);
+                if (response.ok) {
+                    statusIndicator.classList.add('connected');
+                    statusText.textContent = 'API подключено и работает';
+                } else {
+                    throw new Error('API не отвечает');
+                }
+            } catch (error) {
+                statusText.textContent = 'Ошибка подключения к API';
+                showError('Не удалось подключиться к API. Убедитесь, что сервер запущен на localhost:8000');
+            }
+        }
+
+        async function getPrediction() {
+            // Показываем состояние загрузки
+            predictButton.disabled = true;
+            buttonText.innerHTML = '<span class="loading"></span>Модель вычисляет...';
+            
+            // Скрываем предыдущие результаты
+            resultContainer.classList.remove('show');
+            errorContainer.classList.remove('show');
+            
+            try {
+                const startTime = performance.now();
+                const response = await fetch(API_URL);
+                const endTime = performance.now();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Показываем результат
+                    predictionData.textContent = JSON.stringify(data.prediction, null, 2);
+                    resultTimestamp.textContent = new Date(data.timestamp).toLocaleTimeString();
+                    resultContainer.classList.add('show');
+                    
+                    // Обновляем информацию о форме вывода
+                    if (data.model_output_shape) {
+                        outputShape.textContent = data.model_output_shape.join(' × ');
+                    }
+                    
+                    // Показываем время выполнения
+                    const executionTime = (endTime - startTime).toFixed(0);
+                    console.log(`Предсказание получено за ${executionTime}мс`);
+                } else {
+                    throw new Error(data.error || 'Неизвестная ошибка');
+                }
+            } catch (error) {
+                showError(`Ошибка: ${error.message}`);
+            } finally {
+                // Восстанавливаем кнопку
+                predictButton.disabled = false;
+                buttonText.textContent = '🚀 Получить предсказание модели';
+            }
+        }
+        
+        function showError(message) {
+            errorContainer.textContent = message;
+            errorContainer.classList.add('show');
+        }
+        
+        // Проверяем здоровье API при загрузке страницы
+        window.addEventListener('DOMContentLoaded', checkAPIHealth);
+        
+        // Добавляем обработчик клавиши Enter для удобства
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !predictButton.disabled) {
+                getPrediction();
+            }
+        });
+    </script>
+</body>
+</html>
