@@ -38,7 +38,7 @@ async def command_start_handler(message: Message) -> None:
         "🎵 **Добро пожаловать в Music Generation Bot!**\n\n"
         "Я могу генерировать музыку в стиле разных композиторов.\n\n"
         "**Доступные команды:**\n"
-        "/generate - Начать генерацию музыки\n"
+        #"/generate - Начать генерацию музыки\n"
         "/composers - Список доступных композиторов\n"
         "/help - Помощь\n\n"
         "Вы также можете использовать команду:\n"
@@ -57,7 +57,7 @@ async def command_composers_handler(message: Message) -> None:
 async def command_help_handler(message: Message) -> None:
     help_text = (
         "**📖 Справка по боту:**\n\n"
-        "1. **/generate** - Запустить процесс генерации музыки с выбором параметров\n"
+        #"1. **/generate** - Запустить процесс генерации музыки с выбором параметров\n"
         "2. **/generate [стиль] [длительность] [темп]** - Быстрая генерация\n"
         "   Пример: `/generate Mozart 45 90`\n"
         "3. **/composers** - Показать список доступных композиторов\n"
@@ -100,6 +100,7 @@ async def command_generate_handler(message: Message, command: CommandObject) -> 
         except Exception as e:
             await message.answer(f"❌ Ошибка: {str(e)}")
     else:
+        pass ####
         # Интерактивный режим
         user_id = message.from_user.id
         user_states[user_id] = {"step": "choosing_composer"}

@@ -1,5 +1,6 @@
 /__pycache__
 /bot/lilypond-2.24.4
+/bot/__pycache__
 /backend/lilypond-2.24.4
 /bot/token.txt
 /frontend
