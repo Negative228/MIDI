@@ -18,7 +18,6 @@ warnings.simplefilter("ignore")
 
 
 def load_model(path):
-    
     if not os.path.exists(path):
         print(f"Файл {path} не найден.")
         return
@@ -26,27 +25,60 @@ def load_model(path):
         model = tf.keras.models.load_model(path)
         return model
 
-def Melody_Generator(model, Note_Count):
-    seed = X_seed[np.random.randint(0,len(X_seed)-1)]
+def note_sheet(Snippet, offset_increment=1):
+    Melody = []
+    offset = 0 #Incremental
+    for i in Snippet:
+        #If it is chord
+        if ("." in i or i.isdigit()):
+            chord_notes = i.split(".") #Seperating the notes in chord
+            notes = []
+            for j in chord_notes:
+                inst_note=int(j)
+                note_snip = note.Note(inst_note)
+                notes.append(note_snip)
+                chord_snip = chord.Chord(notes)
+                chord_snip.offset = offset
+                Melody.append(chord_snip)
+        # pattern is a note
+        else:
+            note_snip = note.Note(i)
+            note_snip.offset = offset
+            Melody.append(note_snip)
+        # increase offset each iteration so that notes do not stack
+        offset += offset_increment
+    Melody_midi = stream.Stream(Melody)
+    return Melody_midi
+
+def Melody_Generator(model_path, tempo, duration):
+    model = tf.keras.models.load_model(model_path+'model.keras')
+    X_seed = np.loadtxt(model_path+'X_seed.txt', delimiter=',')
+    X_seed = X_seed.reshape((*X_seed.shape, 1))
+    symb = np.loadtxt(model_path+'symb.txt', delimiter=',', dtype=str)
+    L_symb = len(symb)
+    reverse_mapping = dict((i, c) for i, c in enumerate(symb))
+    seed = X_seed[np.random.randint(0, X_seed.shape[0]-1)]
+    
     Music = ""
     Notes_Generated=[]
+    duration *= 2 # for some reason it works in half-second intervals
+    Note_Count = int(tempo * duration / 60.0)
     for i in range(Note_Count):
-        seed = seed.reshape(1,length,1)
+        seed = seed.reshape(1,X_seed.shape[1],1)
         prediction = model.predict(seed, verbose=0)[0]
         prediction = np.log(prediction) / 1.0 #diversity
         exp_preds = np.exp(prediction)
         prediction = exp_preds / np.sum(exp_preds)
         index = np.argmax(prediction)
-        index_N = index/ float(L_symb)
+        index_N = index / float(L_symb)
         Notes_Generated.append(index)
         Music = [reverse_mapping[char] for char in Notes_Generated]
-        seed = np.insert(seed[0],len(seed[0]),index_N)
+        seed = np.insert(seed[0],len(seed[0]),index_N) 
         seed = seed[1:]
-    #Now, we have music in form or a list of chords and notes and we want to be a midi file.
-    Melody = note_sheet(Music)
+    offset_increment = 60.0 / tempo ####?
+    Melody = note_sheet(Music, offset_increment)
     Melody_midi = stream.Stream(Melody)
-    return Music,Melody_midi
+    return Music, Melody_midi
 
-model = tf.keras.models.load_model(r'models/midigen_Chopin.keras')
-Music_notes, Melody = Melody_Generator(model, 100)
-Melody.write('midi','Melody_Generated.mid')
+#Music_notes, Melody = Melody_Generator('models/Chopin/', tempo=128, duration=15)
+#Melody.write('midi', 'Melody_Generated_test.mid')
