@@ -80,5 +80,17 @@ def Melody_Generator(model_path, tempo, duration):
     Melody_midi = stream.Stream(Melody)
     return Music, Melody_midi
 
-#Music_notes, Melody = Melody_Generator('models/Chopin/', tempo=128, duration=15)
-#Melody.write('midi', 'Melody_Generated_test.mid')
+"""
+Music_notes, Melody = Melody_Generator('models/Chopin/', tempo=128, duration=15)
+Melody.write('midi', 'Melody_Generated_test.mid')
+Melody.write('lily.pdf', fp='Melody_Generated_test')
+
+import fitz  # PyMuPDF
+
+doc = fitz.open('Melody_Generated_test.pdf')
+for page_num in range(len(doc)):
+    page = doc.load_page(page_num)
+    pix = page.get_pixmap(dpi=300)
+    pix.save('Melody_Generated_test.png')
+    break
+"""

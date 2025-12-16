@@ -5,10 +5,11 @@ from os import getenv
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandObject
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
-from aiogram.types import FSInputFile
+from aiogram.types import FSInputFile, InputMediaPhoto, InputMediaDocument
 from aiogram.enums import ParseMode
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 import logging
+import fitz
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -126,7 +127,7 @@ async def start_generation(message: Message, style: str, duration: int, tempo: i
         print('*')
         path = choose_path(style)
         print('*')
-        midi_name = f'{style}_{duration}_{tempo}.mid'
+        midi_name = f'{style}_{duration}_{tempo}'
         print('*')
         #model = load_model(path)
         print(path)
@@ -135,9 +136,18 @@ async def start_generation(message: Message, style: str, duration: int, tempo: i
         
         notes, melody = Melody_Generator(path, duration=duration, tempo=tempo)
         print('*')
-        melody.write('midi', midi_name)
+        melody.write('midi', f'{midi_name}.mid')
+        melody.write('lily.pdf', midi_name)
         print('*')
-        await message.answer_document(FSInputFile(midi_name))
+        doc = fitz.open(f'{midi_name}.pdf')
+        for page_num in range(len(doc)):
+            page = doc.load_page(page_num)
+            pix = page.get_pixmap(dpi=300)
+            pix.save(f'{midi_name}.png')
+            break
+        doc.close()
+        print('*')
+        #await message.answer_document(FSInputFile(midi_name))
         # Отправка результата
         success_text = (
             f"✅ **Музыка успешно сгенерирована!**\n\n"
@@ -147,8 +157,18 @@ async def start_generation(message: Message, style: str, duration: int, tempo: i
             f"• Темп: {tempo} BPM\n\n"
             #f"**Результат:**\n{notes[:200]}..." if len(notes) > 200 else notes
         )
-        await message.answer(success_text, parse_mode=ParseMode.MARKDOWN)
-        os.remove(midi_name)
+        #await message.answer(success_text, parse_mode=ParseMode.MARKDOWN)
+        #media_group = MediaGroupBuilder(caption=success_text)
+        media = [
+            InputMediaDocument(media=FSInputFile(f'{midi_name}.png')),
+            InputMediaDocument(media=FSInputFile(f'{midi_name}.pdf')),
+            InputMediaDocument(media=FSInputFile(f'{midi_name}.mid'), caption=success_text)
+            ]
+        await message.answer_media_group(media=media)
+        
+        for ext in ['', '.mid', '.pdf', '.png']:
+            os.remove(f'{midi_name}{ext}')
+        
         # Предложение сгенерировать еще
         await message.answer("Хотите сгенерировать еще одну композицию? Используйте /generate")
         
