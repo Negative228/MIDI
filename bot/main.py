@@ -5,7 +5,7 @@ from os import getenv
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandObject
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.types import FSInputFile, InputMediaPhoto, InputMediaDocument
+from aiogram.types import FSInputFile, InputMediaPhoto, InputMediaDocument, InputMediaAudio
 from aiogram.enums import ParseMode
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 import logging
@@ -13,7 +13,7 @@ import fitz
 
 logging.basicConfig(level=logging.INFO)
 
-from model import load_model, Melody_Generator
+from model import load_model, Melody_Generator, midi_to_mp3, pdf_to_png
 
 with open('token.txt', encoding='utf-8') as file:
     TOKEN = file.read()
@@ -255,7 +255,14 @@ async def command_generate_handler(message: Message, command: CommandObject) -> 
             elif tempo < 20:
                 await message.answer("⚠️ Темп слишком медленный")
                 return
-            
+
+            await message.answer(
+                f"🎵 **Начинаю генерацию...**\n\n"
+                f"• Стиль: {style}\n"
+                f"• Длительность: {duration} сек.\n"
+                f"• Темп: {tempo} BPM\n\n"
+                f"⏳ Пожалуйста, подождите...",
+                parse_mode=ParseMode.MARKDOWN)
             await start_generation(message, style, duration, tempo)
             
         except ValueError:
@@ -594,14 +601,9 @@ async def start_generation(message: Message, style: str, duration: int, tempo: i
         notes, melody = Melody_Generator(path, duration=duration, tempo=tempo)
         melody.write('midi', f'{midi_name}.mid')
         melody.write('lily.pdf', midi_name)
-        doc = fitz.open(f'{midi_name}.pdf')
-        for page_num in range(len(doc)):
-            page = doc.load_page(page_num)
-            pix = page.get_pixmap(dpi=300)
-            pix.save(f'{midi_name}.png')
-            break
-        doc.close()
         
+        pdf_to_png(midi_name)
+        midi_to_mp3(midi_name)
         success_text = (
             f"✅ **Музыка успешно сгенерирована!**\n\n"
             f"**Параметры:**\n"
@@ -612,11 +614,11 @@ async def start_generation(message: Message, style: str, duration: int, tempo: i
         media = [
             InputMediaDocument(media=FSInputFile(f'{midi_name}.png')),
             InputMediaDocument(media=FSInputFile(f'{midi_name}.pdf')),
-            InputMediaDocument(media=FSInputFile(f'{midi_name}.mid'), caption=success_text)
+            InputMediaDocument(media=FSInputFile(f'{midi_name}.mid')),
+            InputMediaDocument(media=FSInputFile(f'{midi_name}.mp3'), caption=success_text)
             ]
         await message.answer_media_group(media=media)
-        
-        for ext in ['', '.mid', '.pdf', '.png']:
+        for ext in ['', '.mid', '.pdf', '.png', '.wav', '.mp3']:
             os.remove(f'{midi_name}{ext}')
         
         # Предлагаем вернуться в главное меню

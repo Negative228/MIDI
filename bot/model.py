@@ -1,7 +1,9 @@
 import tensorflow as tf
 import numpy as np
+import pydub
 import music21
 from music21 import *
+import fitz
 
 us = environment.UserSettings()
 us['lilypondPath'] = 'lilypond-2.24.4/bin/lilypond.exe'
@@ -11,7 +13,7 @@ from tensorflow.keras.layers import LSTM, Dense, Dropout
 import tensorflow.keras.backend as K
 from tensorflow.keras.optimizers import Adamax
 
-import os
+import os, sys, getopt, glob, random, re, subprocess
 import warnings
 warnings.filterwarnings("ignore")
 warnings.simplefilter("ignore")
@@ -80,17 +82,24 @@ def Melody_Generator(model_path, tempo, duration):
     Melody_midi = stream.Stream(Melody)
     return Music, Melody_midi
 
-"""
-Music_notes, Melody = Melody_Generator('models/Chopin/', tempo=128, duration=15)
-Melody.write('midi', 'Melody_Generated_test.mid')
-Melody.write('lily.pdf', fp='Melody_Generated_test')
+#Music_notes, Melody = Melody_Generator('models/Chopin/', tempo=128, duration=15)
+#Melody.write('midi', 'Melody_Generated_test.mid')
+#Melody.write('lily.pdf', fp='Melody_Generated_test')
+  
+def pdf_to_png(midi_name):
+    doc = fitz.open(f'{midi_name}.pdf')
+    for page_num in range(len(doc)):
+        page = doc.load_page(page_num)
+        pix = page.get_pixmap(dpi=300)
+        pix.save(f'{midi_name}.png')
+        break
+    doc.close()
 
-import fitz  # PyMuPDF
-
-doc = fitz.open('Melody_Generated_test.pdf')
-for page_num in range(len(doc)):
-    page = doc.load_page(page_num)
-    pix = page.get_pixmap(dpi=300)
-    pix.save('Melody_Generated_test.png')
-    break
-"""
+def midi_to_mp3(midi_name, sf2='FluidR3_GM.sf2', out_type='wav', conv_type='mp3'):
+    midi_file = f"{midi_name}.mid"
+    out_file = f"{midi_name}.{out_type}"
+    subprocess.run(['fluidsynth', '-T', out_type, '-F', out_file, '-ni', sf2, midi_file])
+    conv_file = f"{midi_name}.{conv_type}"
+    sound = pydub.AudioSegment.from_wav(out_file)
+    sound.export(conv_file, format=conv_type)
+#midi_to_mp3('Melody_Generated_test')
