@@ -1,4 +1,9 @@
+import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor
 import asyncio
+
+thread_pool = ThreadPoolExecutor(max_workers=3)
+
 import os
 from os import getenv
 
@@ -28,11 +33,9 @@ DEFAULT_TEMPOS = [60, 80, 100, 120, 140, 160]
 user_states = {}
 
 def choose_path(style):
-
     return f"models/{style}/" 
 
 def get_main_menu_keyboard():
-    """Создает главное меню с кнопками"""
     builder = InlineKeyboardBuilder()
     
     builder.button(text="🎵 Сгенерировать музыку", callback_data="main_generate")
@@ -43,13 +46,11 @@ def get_main_menu_keyboard():
     return builder.as_markup()
 
 def get_back_to_menu_keyboard():
-    """Создает кнопку для возврата в главное меню"""
     builder = InlineKeyboardBuilder()
     builder.button(text="🔙 Назад в меню", callback_data="back_to_main_menu")
     return builder.as_markup()
 
 def get_composers_keyboard(with_back_to_main=True):
-    """Создает клавиатуру для выбора композитора"""
     builder = InlineKeyboardBuilder()
     
     for composer in DEFAULT_COMPOSERS:
@@ -58,11 +59,10 @@ def get_composers_keyboard(with_back_to_main=True):
     if with_back_to_main:
         builder.button(text="🔙 Назад в меню", callback_data="back_to_main_menu")
     
-    builder.adjust(2)  # 2 кнопки в строке
+    builder.adjust(2)
     return builder.as_markup()
 
 def get_durations_keyboard():
-    """Создает клавиатуру для выбора длительности"""
     builder = InlineKeyboardBuilder()
     
     for duration in DEFAULT_DURATIONS:
@@ -75,7 +75,6 @@ def get_durations_keyboard():
     return builder.as_markup()
 
 def get_tempos_keyboard():
-    """Создает клавиатуру для выбора темпа"""
     builder = InlineKeyboardBuilder()
     
     for tempo in DEFAULT_TEMPOS:
@@ -88,7 +87,6 @@ def get_tempos_keyboard():
     return builder.as_markup()
 
 def get_confirmation_keyboard():
-    """Создает клавиатуру для подтверждения параметров"""
     builder = InlineKeyboardBuilder()
     
     builder.button(text="✅ Начать генерацию", callback_data="confirm_generate")
@@ -97,10 +95,10 @@ def get_confirmation_keyboard():
     builder.button(text="🔄 Изменить темп", callback_data="change_tempo")
     builder.button(text="❌ Отменить", callback_data="cancel_generate")
     
-    builder.adjust(1)  # По одной кнопке в строке
+    builder.adjust(1)
     return builder.as_markup()
 
-# Command handler
+
 @dp.message(Command("start"))
 async def command_start_handler(message: Message) -> None:
     welcome_text = (
@@ -110,7 +108,6 @@ async def command_start_handler(message: Message) -> None:
     )
     await message.answer(welcome_text, parse_mode=ParseMode.MARKDOWN, reply_markup=get_main_menu_keyboard())
 
-# Обработчики главного меню
 @dp.callback_query(F.data == "main_generate")
 async def main_menu_generate(callback: CallbackQuery):
     user_id = callback.from_user.id
@@ -173,7 +170,6 @@ async def main_menu_help(callback: CallbackQuery):
 async def back_to_main_menu(callback: CallbackQuery):
     user_id = callback.from_user.id
     
-    # Очищаем состояние пользователя при возврате в главное меню
     if user_id in user_states:
         del user_states[user_id]
     
@@ -225,13 +221,6 @@ async def command_help_handler(message: Message) -> None:
 
 @dp.message(Command("generate"))
 async def command_generate_handler(message: Message, command: CommandObject) -> None:
-    """
-    Обработчик команды /generate
-    Поддерживает два режима:
-    1. С параметрами: /generate style duration tempo
-    2. Интерактивный режим без параметров
-    """
-    # Если есть аргументы, используем быстрый режим
     if command.args:
         try:
             args = command.args.split()
@@ -289,13 +278,11 @@ async def command_generate_handler(message: Message, command: CommandObject) -> 
             reply_markup=get_composers_keyboard(with_back_to_main=True)  # Теперь есть кнопка "Назад в меню"
         )
 
-# Обработчики callback-запросов для генерации
 @dp.callback_query(F.data.startswith("composer_"))
 async def process_composer_selection(callback: CallbackQuery):
     user_id = callback.from_user.id
     composer = callback.data.split("_")[1]
     
-    # Сохраняем выбор композитора
     if user_id not in user_states:
         user_states[user_id] = {}
     
@@ -332,7 +319,6 @@ async def process_duration_selection(callback: CallbackQuery):
     
     duration = int(callback.data.split("_")[1])
 
-    # Сохраняем выбор длительности
     user_states[user_id]["duration"] = duration
     user_states[user_id]["step"] = "choosing_tempo"
     
@@ -369,7 +355,6 @@ async def process_tempo_selection(callback: CallbackQuery):
         return
     
     tempo = int(callback.data.split("_")[1])
-    # Сохраняем выбор темпа
     user_states[user_id]["tempo"] = tempo
     user_states[user_id]["step"] = "confirmation"
     
@@ -391,7 +376,6 @@ async def process_tempo_selection(callback: CallbackQuery):
     )
     await callback.answer()
 
-# Обработчики кнопок назад
 @dp.callback_query(F.data == "back_to_composers")
 async def back_to_composers(callback: CallbackQuery):
     user_id = callback.from_user.id
@@ -423,7 +407,6 @@ async def back_to_durations(callback: CallbackQuery):
     )
     await callback.answer()
 
-# Обработчики изменения параметров
 @dp.callback_query(F.data == "change_composer")
 async def change_composer(callback: CallbackQuery):
     user_id = callback.from_user.id
@@ -470,7 +453,6 @@ async def change_tempo(callback: CallbackQuery):
 async def cancel_generation(callback: CallbackQuery):
     user_id = callback.from_user.id
     
-    # Очищаем состояние пользователя
     if user_id in user_states:
         del user_states[user_id]
     
@@ -502,7 +484,6 @@ async def confirm_generation(callback: CallbackQuery):
         await callback.answer("❌ Не все параметры выбраны!", show_alert=True)
         return
     
-    # Очищаем состояние перед генерацией
     del user_states[user_id]
     
     await callback.message.edit_text(
@@ -512,11 +493,9 @@ async def confirm_generation(callback: CallbackQuery):
         f"• Темп: {tempo} BPM\n\n"
         f"⏳ Пожалуйста, подождите...",
         parse_mode=ParseMode.MARKDOWN)
-    # Запускаем генерацию
     await callback.answer()
     await start_generation(callback.message, composer, duration, tempo)
 
-# Обработка ручного ввода длительности и темпа
 @dp.message(F.text)
 async def handle_text_input(message: Message):
     user_id = message.from_user.id
@@ -527,7 +506,6 @@ async def handle_text_input(message: Message):
     current_step = user_states[user_id].get("step", "")
     
     try:
-        # Обработка ручного ввода длительности
         if current_step == "entering_custom_duration":
             try:
                 duration = int(message.text.strip())
@@ -555,7 +533,6 @@ async def handle_text_input(message: Message):
             except ValueError:
                 await message.answer("❌ Пожалуйста, введите число (например: 60)")
         
-        # Обработка ручного ввода темпа
         elif current_step == "entering_custom_tempo":
             try:
                 tempo = int(message.text.strip())
@@ -593,17 +570,24 @@ async def handle_text_input(message: Message):
     except Exception as e:
         await message.answer(f"❌ Произошла ошибка: {str(e)}")
 
-# Функция запуска генерации (остается без изменений)
-async def start_generation(message: Message, style: str, duration: int, tempo: int = None):
+def generate_midi(style: str, duration: int, tempo: int):
+    path = choose_path(style)
+    midi_name = f'{style}_{duration}_{tempo}'
+    notes, melody = Melody_Generator(path, duration=duration, tempo=tempo)
+    melody.write('midi', f'{midi_name}.mid')
+    melody.write('lily.pdf', midi_name)
+    pdf_to_png(midi_name)
+    midi_to_mp3(midi_name)
+    
+async def start_generation(message: Message, style: str, duration: int, tempo: int):
     try:
-        path = choose_path(style)
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            thread_pool, 
+            generate_midi, 
+            style, duration, tempo
+            )
         midi_name = f'{style}_{duration}_{tempo}'
-        notes, melody = Melody_Generator(path, duration=duration, tempo=tempo)
-        melody.write('midi', f'{midi_name}.mid')
-        melody.write('lily.pdf', midi_name)
-        
-        pdf_to_png(midi_name)
-        midi_to_mp3(midi_name)
         success_text = (
             f"✅ **Музыка успешно сгенерирована!**\n\n"
             f"**Параметры:**\n"
@@ -621,7 +605,6 @@ async def start_generation(message: Message, style: str, duration: int, tempo: i
         for ext in ['', '.mid', '.pdf', '.png', '.wav', '.mp3']:
             os.remove(f'{midi_name}{ext}')
         
-        # Предлагаем вернуться в главное меню
         await message.answer(
             "🎵 **Хотите сгенерировать еще одну композицию?**",
             parse_mode=ParseMode.MARKDOWN,
@@ -640,12 +623,10 @@ async def start_generation(message: Message, style: str, duration: int, tempo: i
             reply_markup=get_main_menu_keyboard()
         )
         
-        # Очистка состояния в случае ошибки
         user_id = message.from_user.id
         if user_id in user_states:
             del user_states[user_id]
 
-# Запуск бота
 async def main() -> None:
     bot = Bot(token=TOKEN)
     await dp.start_polling(bot)
