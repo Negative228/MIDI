@@ -20,6 +20,5 @@
   - Деплой и инфраструктура
 
 ## Источники
-   - Maestro Dataset (https://magenta.tensorflow.org/datasets/maestro)
-   - Lakh MIDI Dataset (https://colinraffel.com/projects/lmd/)
+   - Classical Music MIDI (https://www.kaggle.com/datasets/soumikrakshit/classical-music-midi)
    - VGMIDI Dataset (https://github.com/lucasnfe/vgmidi)
